@@ -1,0 +1,61 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"terminal.integrated.profiles.windows": {
+			"PowerShell": {
+				"source": "PowerShell",
+				"icon": "terminal-powershell"
+			},
+			"Command Prompt": {
+				"path": [
+					"${env:windir}\\Sysnative\\cmd.exe",
+					"${env:windir}\\System32\\cmd.exe"
+				],
+				"args": [
+					"/k",
+					"C:/Espressif/frameworks/esp-idf-v5.5.1/export.bat"
+				],
+				"icon": "terminal-cmd"
+			},
+			"Git Bash": {
+				"source": "Git Bash"
+			}
+		},
+		"terminal.integrated.defaultProfile.windows": "Command Prompt",
+		"files.associations": {
+			"freertos.h": "c",
+			"gpio.h": "c",
+			"touch_sens.h": "c",
+			"charconv": "c",
+			"chrono": "c",
+			"optional": "c",
+			"format": "c",
+			"ratio": "c",
+			"system_error": "c",
+			"array": "c",
+			"functional": "c",
+			"regex": "c",
+			"tuple": "c",
+			"type_traits": "c",
+			"utility": "c",
+			"bitset": "c",
+			"algorithm": "c",
+			"touch_sens_example_config.h": "c",
+			"span": "c",
+			"*.xc": "c",
+			"string": "c",
+			"string_view": "c",
+			"ranges": "c",
+			"touch_sens_private.h": "c",
+			"touch_sens_types.h": "c",
+			"soc_caps.h": "c",
+			"uart.h": "c",
+			"r558_driver.h": "c",
+			"cstdint": "cpp"
+		},
+	}
+}

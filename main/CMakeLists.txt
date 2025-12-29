@@ -1,0 +1,25 @@
+idf_component_register(
+                SRCS
+                    "DoorServices_main.c"
+                    "tasks/app_task.c"                    
+                    "tasks/fp_task.c"                    
+                    "tasks/temp_task.c"                    
+                    "tasks/relay_task.c"                    
+                    "tasks/btn_task.c"                    
+                    "tasks/pad_task.c"                    
+                    "tasks/led_task.c"                    
+                    "tasks/sleep_task.c"                    
+                    "tasks/screen_task.c"                    
+                    "app/app_fsm.c"                    
+                    "app/timers.c"                    
+                    "services/sleep_manager.c"                    
+                    "drivers/fingerprint/fingerprint.c"                    
+                    "drivers/temperature/temperature.c"                    
+                    "drivers/temperature/bmp280/bmp280.c"                    
+                    "drivers/temperature/i2cdev/i2cdev.c"                    
+                    "drivers/padSensor/padSens.c"                    
+                    "drivers/led/led.c"                    
+                    "drivers/ssd1306/ssd1306.c"                    
+                INCLUDE_DIRS 
+                    "."
+                )
