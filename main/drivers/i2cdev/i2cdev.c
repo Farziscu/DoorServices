@@ -65,6 +65,12 @@ typedef struct
 static i2c_port_state_t i2c_ports[I2C_NUM_MAX] = {0};
 static i2c_dev_t *active_devices[I2C_NUM_MAX][CONFIG_I2CDEV_MAX_DEVICES_PER_PORT] = {{NULL}};
 
+i2c_master_bus_handle_t i2c_bus_get(void)
+{
+
+    return i2c_ports[0].bus_handle;
+}
+
 // Helper to register a device
 static esp_err_t register_device(i2c_dev_t *dev)
 {

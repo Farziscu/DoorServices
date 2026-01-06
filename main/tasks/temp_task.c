@@ -3,7 +3,7 @@
 #include "freertos/semphr.h"
 #include "esp_log.h"
 
-#include "drivers/temperature/temperature.h"
+#include "drivers/temperature/temp_sensor.h"
 #include "app/app_events.h"
 #include "app/timers.h"
 
@@ -22,7 +22,8 @@ void temp_task(void *arg)
     // TickType_t last_wake = xTaskGetTickCount();
     // const TickType_t period = pdMS_TO_TICKS(READ_TEMP_PERIOD_MS);
 
-    temperature_init();
+    temp_sensor_init();
+    // temperature_init();
     vTaskDelay(pdMS_TO_TICKS(50)); // wait to prepare sensor for the first read
 
     while (1)
@@ -38,7 +39,8 @@ void temp_task(void *arg)
 
         timers_set_temperature_last_read();
 
-        if (temperature_read(&temp_value) == TMP_OK)
+        // if (temperature_read(&temp_value) == TMP_OK)
+        if (temperature_read(&temp_value) == true)
         {
             evt.data.tempSens.temperature = temp_value.temperature;
             evt.data.tempSens.pressure = temp_value.pressure;

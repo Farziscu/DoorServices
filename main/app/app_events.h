@@ -1,6 +1,6 @@
 
 #include "stdint.h"
-#include <drivers/temperature/temperature.h>
+#include <drivers/temperature/temp_sensor.h>
 
 #pragma once
 

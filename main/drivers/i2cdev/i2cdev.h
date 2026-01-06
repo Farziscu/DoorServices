@@ -48,6 +48,7 @@
 
 #include <driver/gpio.h>
 #include <driver/i2c.h>
+#include <driver/i2c_master.h>
 #include <esp_err.h>
 // #include <esp_idf_lib_helpers.h>
 #include <freertos/FreeRTOS.h>
@@ -184,6 +185,8 @@ extern "C"
             } master;               //!< Master-specific config (mimics old i2c_config_t.master)
         } cfg;                      //!< Configuration set by device drivers (i2c_config_t compatible layout)
     } i2c_dev_t;
+
+    i2c_master_bus_handle_t i2c_bus_get(void);
 
     /**
      * @brief Initialize I2C subsystem (port mutexes and internal states)

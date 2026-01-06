@@ -6,6 +6,8 @@
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 
+#include "../i2cdev/i2cdev.h"
+
 #define SSD1306_TAG "SSD1306"
 
 #define I2C_SSD1306_TIMEOUT_MS 1000
@@ -59,10 +61,18 @@ typedef struct
     ssd1306_page_t *page;
 } i2c_ssd1306_handle_t;
 
+/**
+ * Device descriptor
+ */
+typedef struct
+{
+    i2c_dev_t i2c_dev; //!< I2C device descriptor
+    uint8_t id;        //!< Chip ID
+} ssd1306_t;
+
+esp_err_t oled_init(void);
+
 void init_ssd1306(void);
-void deinit_ssd1306(void);
-void ssd1306_clean(void);
-void ssd1306_clean_space(uint8_t x1, uint8_t x2, uint8_t y1, uint8_t y2);
 esp_err_t ssd1306_print_str(uint8_t x, uint8_t y, const char *text, bool invert);
 esp_err_t ssd1306_display(void);
 
@@ -283,3 +293,5 @@ esp_err_t i2c_ssd1306_pages_to_ram(i2c_ssd1306_handle_t *i2c_ssd1306, uint8_t in
  * @return ESP_OK on success, or an error code otherwise.
  */
 esp_err_t i2c_ssd1306_buffer_to_ram(i2c_ssd1306_handle_t *i2c_ssd1306);
+
+void ssd1306_clean_space(uint8_t x1, uint8_t x2, uint8_t y1, uint8_t y2);

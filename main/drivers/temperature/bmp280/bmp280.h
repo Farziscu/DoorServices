@@ -42,7 +42,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <esp_err.h>
-#include "../i2cdev/i2cdev.h"
+#include "drivers/i2cdev/i2cdev.h"
 
 #ifdef __cplusplus
 extern "C"

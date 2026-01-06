@@ -1,5 +1,18 @@
 #include "ssd1306.h"
 #include "ssd1306_const.h"
+#include "../i2cdev/i2cdev.h"
+#include "esp_log.h"
+
+#define OLED_ADDR 0x3C
+#define CONFIG_EXAMPLE_I2C_MASTER_SDA GPIO_NUM_21
+#define CONFIG_EXAMPLE_I2C_MASTER_SCL GPIO_NUM_22
+
+#define CHECK_ARG(VAL)                  \
+    do                                  \
+    {                                   \
+        if (!(VAL))                     \
+            return ESP_ERR_INVALID_ARG; \
+    } while (0)
 
 uint8_t ssd1306_logo[8][64] = {
     {0xFF, 0xFF, 0xFF, 0xFF, 0x0F, 0x0F, 0xEF, 0xEF, 0xEF, 0xEF, 0x0F, 0x0F, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -36,9 +49,10 @@ uint8_t ssd1306_logo[8][64] = {
      0xDF, 0xDF, 0xDF, 0xDF, 0xDF, 0xDF, 0xDF, 0xC0, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};
 
 static i2c_ssd1306_handle_t i2c_ssd1306;
-static i2c_master_bus_handle_t i2c_master_bus;
+////////static i2c_master_bus_handle_t i2c_master_bus;
 
 /* I2C Master */
+/*
 static const i2c_master_bus_config_t i2c_master_bus_config = {
     .i2c_port = I2C_NUM_0,
     .scl_io_num = GPIO_NUM_22,
@@ -46,44 +60,89 @@ static const i2c_master_bus_config_t i2c_master_bus_config = {
     .clk_source = I2C_CLK_SRC_DEFAULT,
     .glitch_ignore_cnt = 7,
     .flags.enable_internal_pullup = true};
+*/
 
 /* SSD1306 */
 static const i2c_ssd1306_config_t i2c_ssd1306_config = {
-    .i2c_device_address = 0x3C,
+    .i2c_device_address = OLED_ADDR,
     .i2c_scl_speed_hz = 400000,
     .width = 128,
     .height = 64,
     .wise = SSD1306_BOTTOM_TO_TOP};
 
+static ssd1306_t dev;
+
+static const char *TAG = "ssd1306";
+
+esp_err_t ssd1306_init_desc(ssd1306_t *dev, uint8_t addr, i2c_port_t port, gpio_num_t sda_gpio, gpio_num_t scl_gpio)
+{
+    ESP_LOGI(TAG, "ssd1306_init_desc");
+
+    CHECK_ARG(dev);
+
+    if (addr != OLED_ADDR)
+    {
+        ESP_LOGE(TAG, "Invalid I2C address");
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    dev->i2c_dev.port = port;
+    dev->i2c_dev.addr = addr;
+    dev->i2c_dev.cfg.sda_io_num = sda_gpio;
+    dev->i2c_dev.cfg.scl_io_num = scl_gpio;
+    dev->i2c_dev.cfg.master.clk_speed = 400000; // I2C_FREQ_HZ;
+
+    return i2c_dev_create_mutex(&dev->i2c_dev);
+}
+
+esp_err_t oled_init(void)
+{
+    i2c_master_bus_handle_t master_bus_handle = i2c_bus_get();
+
+    // ESP_ERROR_CHECK(i2cdev_init());
+
+    memset(&dev, 0, sizeof(ssd1306_t));
+    ssd1306_init_desc(&dev, OLED_ADDR, 0, CONFIG_EXAMPLE_I2C_MASTER_SDA, CONFIG_EXAMPLE_I2C_MASTER_SCL);
+
+    /*
+    i2c_device_config_t cfg = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = OLED_ADDR,
+        .scl_speed_hz = 400000,
+    };
+
+    ESP_ERROR_CHECK(i2c_master_bus_add_device(master_bus_handle, &cfg, &oled_dev));
+    */
+
+    esp_err_t ret = i2c_ssd1306_init(master_bus_handle, i2c_ssd1306_config, &i2c_ssd1306);
+    if (ret != ESP_OK)
+    {
+        ESP_LOGI(TAG, "i2c_ssd1306_init failed!");
+    }
+
+    i2c_ssd1306_buffer_image(&i2c_ssd1306, 32, 0, (const uint8_t *)ssd1306_logo, 64, 64, false);
+    i2c_ssd1306_buffer_to_ram(&i2c_ssd1306);
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    i2c_ssd1306_buffer_clear(&i2c_ssd1306);
+
+    ESP_LOGI(TAG, "OLED initialized");
+
+    return ESP_OK;
+}
+
+/*
 void init_ssd1306(void)
 {
-    i2c_new_master_bus(&i2c_master_bus_config, &i2c_master_bus);
+    // i2c_new_master_bus(&i2c_master_bus_config, &i2c_master_bus);
+    i2c_master_bus_handle_t i2c_master_bus = i2c_bus_get();
+
     i2c_ssd1306_init(i2c_master_bus, i2c_ssd1306_config, &i2c_ssd1306);
     i2c_ssd1306_buffer_image(&i2c_ssd1306, 32, 0, (const uint8_t *)ssd1306_logo, 64, 64, false);
     i2c_ssd1306_buffer_to_ram(&i2c_ssd1306);
     vTaskDelay(1000 / portTICK_PERIOD_MS);
     i2c_ssd1306_buffer_clear(&i2c_ssd1306);
 }
-
-void deinit_ssd1306(void)
-{
-    i2c_ssd1306_buffer_clear(&i2c_ssd1306);
-    i2c_ssd1306_buffer_to_ram(&i2c_ssd1306);
-    i2c_ssd1306_deinit(&i2c_ssd1306);
-}
-
-void ssd1306_clean(void)
-{
-    i2c_ssd1306_buffer_clear(&i2c_ssd1306);
-    i2c_ssd1306_buffer_to_ram(&i2c_ssd1306);
-}
-
-void ssd1306_clean_space(uint8_t x1, uint8_t x2, uint8_t y1, uint8_t y2)
-{
-    i2c_ssd1306_buffer_fill_space(&i2c_ssd1306, x1, x2, y1, y2, false);
-    i2c_ssd1306_buffer_to_ram(&i2c_ssd1306);
-}
-
+*/
 esp_err_t ssd1306_print_str(uint8_t x, uint8_t y, const char *text, bool invert)
 {
     return (i2c_ssd1306_buffer_text(&i2c_ssd1306, x, y, text, invert));
@@ -103,7 +162,11 @@ esp_err_t i2c_ssd1306_init(i2c_master_bus_handle_t i2c_master_bus, i2c_ssd1306_c
     }
 
     ESP_LOGI(SSD1306_TAG, "Initializing I2C SSD1306...");
+
+    I2C_DEV_TAKE_MUTEX(&(dev.i2c_dev));
+
     esp_err_t ret = i2c_master_probe(i2c_master_bus, i2c_ssd1306_config.i2c_device_address, I2C_SSD1306_TIMEOUT_MS / portTICK_PERIOD_MS);
+
     if (ret != ESP_OK)
     {
         switch (ret)
@@ -176,6 +239,9 @@ esp_err_t i2c_ssd1306_init(i2c_master_bus_handle_t i2c_master_bus, i2c_ssd1306_c
         if (i2c_ssd1306->page[i].segment == NULL)
             return ESP_ERR_NO_MEM;
     }
+
+    I2C_DEV_GIVE_MUTEX(&(dev.i2c_dev));
+
     ESP_LOGI(SSD1306_TAG, "I2C SSD1306 initialized successfully");
 
     return ret;
@@ -189,12 +255,18 @@ esp_err_t i2c_ssd1306_deinit(i2c_ssd1306_handle_t *i2c_ssd1306)
         free(i2c_ssd1306->page[i].segment);
     }
     free(i2c_ssd1306->page);
+
+    I2C_DEV_TAKE_MUTEX(&(dev.i2c_dev));
+
     esp_err_t ret = i2c_master_bus_rm_device(i2c_ssd1306->i2c_master_dev);
     if (ret != ESP_OK)
     {
         ESP_LOGE(SSD1306_TAG, "Failed to remove I2C SSD1306 device");
         return ret;
     }
+
+    I2C_DEV_GIVE_MUTEX(&(dev.i2c_dev));
+
     ESP_LOGI(SSD1306_TAG, "I2C SSD1306 deinitialized successfully");
 
     return ret;
@@ -444,6 +516,8 @@ esp_err_t i2c_ssd1306_segment_to_ram(i2c_ssd1306_handle_t *i2c_ssd1306, uint8_t 
         return ESP_ERR_INVALID_ARG;
     }
 
+    I2C_DEV_TAKE_MUTEX(&(dev.i2c_dev));
+
     uint8_t ram_addr_cmd[] = {
         OLED_CONTROL_BYTE_CMD,
         OLED_MASK_PAGE_ADDR | page,
@@ -465,6 +539,8 @@ esp_err_t i2c_ssd1306_segment_to_ram(i2c_ssd1306_handle_t *i2c_ssd1306, uint8_t 
         return err;
     }
 
+    I2C_DEV_GIVE_MUTEX(&(dev.i2c_dev));
+
     return err;
 }
 
@@ -475,6 +551,8 @@ esp_err_t i2c_ssd1306_segments_to_ram(i2c_ssd1306_handle_t *i2c_ssd1306, uint8_t
         ESP_LOGE(SSD1306_TAG, "Invalid page or segment range, 'page' must be between 0 and %d, 'initial_segment' and 'final_segment' must be between 0 and %d, 'initial_segment' must be less than or equal to 'final_segment'", i2c_ssd1306->total_pages - 1, i2c_ssd1306->width - 1);
         return ESP_ERR_INVALID_ARG;
     }
+
+    I2C_DEV_TAKE_MUTEX(&(dev.i2c_dev));
 
     uint8_t ram_addr_cmd[] = {
         OLED_CONTROL_BYTE_CMD,
@@ -500,6 +578,8 @@ esp_err_t i2c_ssd1306_segments_to_ram(i2c_ssd1306_handle_t *i2c_ssd1306, uint8_t
         return err;
     }
 
+    I2C_DEV_GIVE_MUTEX(&(dev.i2c_dev));
+
     return err;
 }
 
@@ -510,6 +590,8 @@ esp_err_t i2c_ssd1306_page_to_ram(i2c_ssd1306_handle_t *i2c_ssd1306, uint8_t pag
         ESP_LOGE(SSD1306_TAG, "Invalid page number, must be between 0 and %d", i2c_ssd1306->total_pages - 1);
         return ESP_ERR_INVALID_ARG;
     }
+
+    I2C_DEV_TAKE_MUTEX(&(dev.i2c_dev));
 
     uint8_t ram_addr_cmd[] = {
         OLED_CONTROL_BYTE_CMD,
@@ -534,6 +616,8 @@ esp_err_t i2c_ssd1306_page_to_ram(i2c_ssd1306_handle_t *i2c_ssd1306, uint8_t pag
         ESP_LOGE(SSD1306_TAG, "Failed to transfer the page to the RAM of the SSD1306 device");
         return err;
     }
+
+    I2C_DEV_GIVE_MUTEX(&(dev.i2c_dev));
 
     return err;
 }
@@ -568,4 +652,10 @@ esp_err_t i2c_ssd1306_buffer_to_ram(i2c_ssd1306_handle_t *i2c_ssd1306)
     }
 
     return err;
+}
+
+void ssd1306_clean_space(uint8_t x1, uint8_t x2, uint8_t y1, uint8_t y2)
+{
+    i2c_ssd1306_buffer_fill_space(&i2c_ssd1306, x1, x2, y1, y2, false);
+    i2c_ssd1306_buffer_to_ram(&i2c_ssd1306);
 }

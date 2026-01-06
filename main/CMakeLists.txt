@@ -14,12 +14,12 @@ idf_component_register(
                     "app/timers.c"                    
                     "services/sleep_manager.c"                    
                     "drivers/fingerprint/fingerprint.c"                    
-                    "drivers/temperature/temperature.c"                    
+                    "drivers/temperature/temp_sensor.c"                    
                     "drivers/temperature/bmp280/bmp280.c"                    
-                    "drivers/temperature/i2cdev/i2cdev.c"                    
+                    "drivers/i2cdev/i2cdev.c"                    
                     "drivers/padSensor/padSens.c"                    
                     "drivers/led/led.c"                    
-                    "drivers/ssd1306/ssd1306.c"                    
+                    "drivers/screen/ssd1306.c"                    
                 INCLUDE_DIRS 
                     "."
                 )

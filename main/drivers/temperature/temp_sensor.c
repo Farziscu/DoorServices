@@ -1,23 +1,33 @@
+#include "temp_sensor.h"
+// #include "i2c_bus.h"
+#include <driver/i2c_master.h>
+#include "esp_log.h"
 
-#include <stdio.h>
-// #include <math.h>
-
-#include <freertos/FreeRTOS.h>
 #include "bmp280/bmp280.h"
-#include <esp_log.h>
 
-#include "temperature.h"
+#define BMP280_I2C_ADDRESS 0x76 //!< I2C address when SDO pin is low
+#define BMP280_REG_ID 0xD0
 
 #define CONFIG_EXAMPLE_I2C_MASTER_SDA GPIO_NUM_21
 #define CONFIG_EXAMPLE_I2C_MASTER_SCL GPIO_NUM_22
 
-static const char *TAG = "drv-temperature";
+static i2c_master_dev_handle_t temp_dev;
 static bmp280_t dev;
-// static float simTemperature = 15;
+static const char *TAG = "temp_sensor";
 
-bool temperature_init(void)
+void temp_sensor_init(void)
 {
-    // esp_log_level_set(TAG, ESP_LOG_VERBOSE);
+    /*
+    i2c_master_bus_handle_t bus = i2c_bus_get();
+
+    i2c_device_config_t cfg = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = BMP280_I2C_ADDRESS,
+        .scl_speed_hz = 400000,
+    };
+
+    ESP_ERROR_CHECK(i2c_master_bus_add_device(bus, &cfg, &temp_dev));
+    */
 
     ESP_ERROR_CHECK(i2cdev_init());
 
@@ -29,16 +39,15 @@ bool temperature_init(void)
 
     ESP_ERROR_CHECK(bmp280_init(&dev, &params));
 
-    // bool bme280p = dev.id == BME280_CHIP_ID;
-    // printf("BMP280: found 0x%X  --> %s\n", dev.id, bme280p ? "BME280" : "BMP280");
     ESP_LOGV(TAG, "BMP280: found 0x%X  --> %s\n", dev.id, (dev.id == BME280_CHIP_ID) ? "BME280" : "BMP280");
-    return true;
+
+    ESP_LOGI(TAG, "temperature sensor initialized");
 }
 
-tmp_result_t temperature_read(temp_t *values)
+bool temperature_read(temp_t *values)
 {
     if (values == NULL)
-        return TMP_ERROR;
+        return false;
 
     float pressure, temperature, humidity;
 
@@ -48,7 +57,7 @@ tmp_result_t temperature_read(temp_t *values)
     if (bmp280_read_float(&dev, &temperature, &pressure, &humidity) != ESP_OK)
     {
         ESP_LOGE(TAG, "Temperature/pressure reading failed\n");
-        return TMP_ERROR;
+        return false;
     }
 
     values->temperature = temperature;
@@ -58,18 +67,17 @@ tmp_result_t temperature_read(temp_t *values)
     if (dev.id == BME280_CHIP_ID)
         ESP_LOGV(TAG, "Humidity: %.2f\n", humidity);
 
-#if 0
+    return true;
+}
 
+uint8_t temp_sensor_read(void)
+{
+    uint8_t reg = BMP280_REG_ID;
+    uint8_t data[1];
 
-    // simulazione...
-    simTemperature += 0.3;
+    i2c_master_transmit_receive(temp_dev, &reg, 1, data, 2, 1000);
 
-    //*tmp_value = simTemperature;
-    *tmp_value = xTaskGetTickCount();
-
-    // if (((int)simTemperature % 5) == 0)
-    //     return TMP_ERROR;
-    // else
-#endif
-    return TMP_OK;
+    // int16_t raw = (data[0] << 8) | data[1];
+    // return raw * 0.0625f;
+    return data[0];
 }
